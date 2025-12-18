@@ -1,0 +1,26 @@
+# Rust build artifacts
+/target/
+**/*.rs.bk
+
+# Cargo lock file (optional for libraries)
+# Uncomment if you want to track Cargo.lock
+# Cargo.lock
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Debug files
+*.pdb
+
+# Profiling
+perf.data
+perf.data.old
+flamegraph.svg

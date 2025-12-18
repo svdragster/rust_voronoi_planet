@@ -1,0 +1,9 @@
+[package]
+name = "bevy_visualization"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+rust_voronoi_planet = { path = "../.." }
+bevy = "0.17"
