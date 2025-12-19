@@ -9,15 +9,13 @@
 //! - Mouse drag: Orbit camera
 //! - Scroll: Zoom in/out
 
-use bevy::prelude::*;
 use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::mesh::{Indices, PrimitiveTopology};
+use bevy::prelude::*;
 use rust_voronoi_planet::{
-    PlanetConfigBuilder, PlanetSize, VoronoiPlanet,
-    generate_mesh, BasicColorMapper, MeshData, TerrainSampler,
-    ColorMapper, TerrainColor,
-    terrain::sample_perlin_fbm,
-    Vec3 as LibVec3,
+    generate_mesh, terrain::sample_perlin_fbm, BasicColorMapper, ColorMapper, MeshData,
+    PlanetConfigBuilder, PlanetSize, PointDistribution, TerrainColor, TerrainSampler,
+    Vec3 as LibVec3, VoronoiPlanet,
 };
 use std::time::Instant;
 
@@ -80,11 +78,11 @@ struct MarsColorMapper;
 impl ColorMapper<MarsTerrain> for MarsColorMapper {
     fn map_color(&self, terrain: &MarsTerrain) -> TerrainColor {
         match terrain {
-            MarsTerrain::Dust => [0.76, 0.42, 0.26, 1.0],      // Rusty orange
-            MarsTerrain::Rock => [0.6, 0.35, 0.25, 1.0],       // Dark rust
-            MarsTerrain::Canyon => [0.4, 0.2, 0.15, 1.0],      // Deep brown
-            MarsTerrain::PolarIce => [0.9, 0.88, 0.85, 1.0],   // Slightly tinted ice
-            MarsTerrain::DarkRock => [0.5, 0.28, 0.2, 1.0],    // Dark rusty rock
+            MarsTerrain::Dust => [0.76, 0.42, 0.26, 1.0], // Rusty orange
+            MarsTerrain::Rock => [0.6, 0.35, 0.25, 1.0],  // Dark rust
+            MarsTerrain::Canyon => [0.4, 0.2, 0.15, 1.0], // Deep brown
+            MarsTerrain::PolarIce => [0.9, 0.88, 0.85, 1.0], // Slightly tinted ice
+            MarsTerrain::DarkRock => [0.5, 0.28, 0.2, 1.0], // Dark rusty rock
         }
     }
 }
@@ -135,11 +133,11 @@ struct AlienColorMapper;
 impl ColorMapper<AlienTerrain> for AlienColorMapper {
     fn map_color(&self, terrain: &AlienTerrain) -> TerrainColor {
         match terrain {
-            AlienTerrain::ToxicSea => [0.2, 0.05, 0.3, 1.0],       // Deep purple
-            AlienTerrain::Crystal => [0.3, 0.8, 0.9, 1.0],         // Cyan crystal
-            AlienTerrain::FungalForest => [0.6, 0.2, 0.5, 1.0],    // Magenta
-            AlienTerrain::Volcanic => [0.9, 0.4, 0.1, 1.0],        // Orange glow
-            AlienTerrain::Bioluminescent => [0.2, 0.9, 0.5, 1.0],  // Bright green
+            AlienTerrain::ToxicSea => [0.2, 0.05, 0.3, 1.0], // Deep purple
+            AlienTerrain::Crystal => [0.3, 0.8, 0.9, 1.0],   // Cyan crystal
+            AlienTerrain::FungalForest => [0.6, 0.2, 0.5, 1.0], // Magenta
+            AlienTerrain::Volcanic => [0.9, 0.4, 0.1, 1.0],  // Orange glow
+            AlienTerrain::Bioluminescent => [0.2, 0.9, 0.5, 1.0], // Bright green
         }
     }
 }
@@ -165,9 +163,9 @@ struct OrbitTarget {
 }
 
 const PLANET_POSITIONS: [Vec3; 3] = [
-    Vec3::new(0.0, 0.0, 0.0),      // Earth (center)
-    Vec3::new(100.0, 0.0, 0.0),    // Mars (right)
-    Vec3::new(-100.0, 0.0, 0.0),   // Alien (left)
+    Vec3::new(0.0, 0.0, 0.0),    // Earth (center)
+    Vec3::new(100.0, 0.0, 0.0),  // Mars (right)
+    Vec3::new(-100.0, 0.0, 0.0), // Alien (left)
 ];
 
 const PLANET_NAMES: [&str; 3] = ["Earth", "Mars", "Alien"];
@@ -183,58 +181,103 @@ fn setup(
 
     let base_seed = 42u32;
 
-    // Generate Earth
-    info!("Generating Earth...");
+    // Generate Earth (using Fibonacci lattice with jitter + 5 Lloyd iteration)
+    info!("Generating Earth (Fibonacci + 5 Lloyd)...");
     let start = Instant::now();
     let earth_config = PlanetConfigBuilder::new()
         .seed(base_seed)
-        .planet_size(PlanetSize::Tiny)
-        .lloyd_iterations(5).unwrap()
-        .build().unwrap();
+        .planet_size(PlanetSize::Large)
+        .point_distribution(PointDistribution::Fibonacci)
+        .lloyd_iterations(5)
+        .unwrap()
+        .build()
+        .unwrap();
     let earth = VoronoiPlanet::generate(earth_config).unwrap();
     let generation_time = start.elapsed();
     let mesh_start = Instant::now();
     let earth_mesh = generate_mesh(&earth, &BasicColorMapper);
     let mesh_time = mesh_start.elapsed();
-    info!("  Earth: {} cells, generation: {:?}, mesh: {:?}",
-          earth.cell_count(), generation_time, mesh_time);
-    spawn_planet(&mut commands, &mut meshes, &mut materials, earth_mesh, PLANET_POSITIONS[0]);
+    info!(
+        "  Earth (Fibonacci): {} cells, generation: {:?}, mesh: {:?}",
+        earth.cell_count(),
+        generation_time,
+        mesh_time
+    );
+    spawn_planet(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        earth_mesh,
+        PLANET_POSITIONS[0],
+    );
 
-    // Generate Mars
-    info!("Generating Mars...");
+    // Generate Mars (using Random + Lloyd for comparison)
+    info!("Generating Mars (Fibonacci, 1 Lloyd iterations)...");
     let start = Instant::now();
     let mars_config = PlanetConfigBuilder::new()
-        .seed(base_seed + 1000)
+        .seed(base_seed)
         .planet_size(PlanetSize::Tiny)
-        .lloyd_iterations(5).unwrap()
-        .build().unwrap();
-    let mars_sampler = MarsTerrainSampler { seed: mars_config.terrain_seed };
-    let mars: VoronoiPlanet<MarsTerrain> = VoronoiPlanet::generate_with_sampler(mars_config, &mars_sampler).unwrap();
+        .point_distribution(PointDistribution::Fibonacci)
+        .lloyd_iterations(1)
+        .unwrap()
+        .build()
+        .unwrap();
+    let mars_sampler = MarsTerrainSampler {
+        seed: mars_config.terrain_seed,
+    };
+    let mars: VoronoiPlanet<MarsTerrain> =
+        VoronoiPlanet::generate_with_sampler(mars_config, &mars_sampler).unwrap();
     let generation_time = start.elapsed();
     let mesh_start = Instant::now();
     let mars_mesh = generate_mesh(&mars, &MarsColorMapper);
     let mesh_time = mesh_start.elapsed();
-    info!("  Mars: {} cells, generation: {:?}, mesh: {:?}",
-          mars.cell_count(), generation_time, mesh_time);
-    spawn_planet(&mut commands, &mut meshes, &mut materials, mars_mesh, PLANET_POSITIONS[1]);
+    info!(
+        "  Mars (Random+Lloyd): {} cells, generation: {:?}, mesh: {:?}",
+        mars.cell_count(),
+        generation_time,
+        mesh_time
+    );
+    spawn_planet(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        mars_mesh,
+        PLANET_POSITIONS[1],
+    );
 
-    // Generate Alien
-    info!("Generating Alien planet...");
+    // Generate Alien (also using Fibonacci + 1 Lloyd)
+    info!("Generating Alien planet (Fibonacci + 1 Lloyd)...");
     let start = Instant::now();
     let alien_config = PlanetConfigBuilder::new()
-        .seed(base_seed + 2000)
+        .seed(base_seed)
         .planet_size(PlanetSize::Tiny)
-        .lloyd_iterations(5).unwrap()
-        .build().unwrap();
-    let alien_sampler = AlienTerrainSampler { seed: alien_config.terrain_seed };
-    let alien: VoronoiPlanet<AlienTerrain> = VoronoiPlanet::generate_with_sampler(alien_config, &alien_sampler).unwrap();
+        .point_distribution(PointDistribution::Fibonacci)
+        .lloyd_iterations(1)
+        .unwrap()
+        .build()
+        .unwrap();
+    let alien_sampler = AlienTerrainSampler {
+        seed: alien_config.terrain_seed,
+    };
+    let alien: VoronoiPlanet<AlienTerrain> =
+        VoronoiPlanet::generate_with_sampler(alien_config, &alien_sampler).unwrap();
     let generation_time = start.elapsed();
     let mesh_start = Instant::now();
     let alien_mesh = generate_mesh(&alien, &AlienColorMapper);
     let mesh_time = mesh_start.elapsed();
-    info!("  Alien: {} cells, generation: {:?}, mesh: {:?}",
-          alien.cell_count(), generation_time, mesh_time);
-    spawn_planet(&mut commands, &mut meshes, &mut materials, alien_mesh, PLANET_POSITIONS[2]);
+    info!(
+        "  Alien (Fibonacci): {} cells, generation: {:?}, mesh: {:?}",
+        alien.cell_count(),
+        generation_time,
+        mesh_time
+    );
+    spawn_planet(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        alien_mesh,
+        PLANET_POSITIONS[2],
+    );
 
     let total_time = total_start.elapsed();
     info!("=== Total generation time: {:?} ===", total_time);
@@ -333,10 +376,7 @@ fn mesh_data_to_bevy_mesh(mesh_data: MeshData) -> Mesh {
     mesh
 }
 
-fn switch_target(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut orbit_target: ResMut<OrbitTarget>,
-) {
+fn switch_target(keyboard: Res<ButtonInput<KeyCode>>, mut orbit_target: ResMut<OrbitTarget>) {
     let new_index = if keyboard.just_pressed(KeyCode::Digit1) {
         Some(0)
     } else if keyboard.just_pressed(KeyCode::Digit2) {

@@ -7,6 +7,26 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Result, VoronoiError};
 
+/// Method for generating initial point distribution on the sphere
+///
+/// Different methods offer trade-offs between generation speed and uniformity.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum PointDistribution {
+    /// Random uniform distribution on sphere surface
+    ///
+    /// Points are placed randomly and require Lloyd's relaxation for uniformity.
+    /// This is the traditional approach but slower due to multiple relaxation iterations.
+    #[default]
+    Random,
+    /// Fibonacci lattice (golden spiral) distribution
+    ///
+    /// Uses the golden angle to create a near-uniform spiral distribution in O(n) time.
+    /// Produces excellent uniformity without requiring Lloyd's relaxation iterations.
+    /// Recommended for best performance: use with `lloyd_iterations: 0`.
+    Fibonacci,
+}
+
 /// Planet size presets matching the existing game's size system
 ///
 /// Each size maps to a specific cell count and sphere radius for consistent gameplay scaling.
@@ -145,6 +165,12 @@ pub struct PlanetConfig {
     /// If set, this radius will be used instead of the preset radius.
     /// Useful for fine-tuning cell density without creating a custom size.
     pub radius_override: Option<f32>,
+
+    /// Method for generating initial point distribution
+    ///
+    /// - `Random`: Traditional random placement, requires Lloyd relaxation
+    /// - `Fibonacci`: Golden spiral, near-uniform without relaxation (faster)
+    pub point_distribution: PointDistribution,
 }
 
 impl PlanetConfig {
@@ -210,6 +236,7 @@ pub struct PlanetConfigBuilder {
     lloyd_convergence: f32,
     terrain_seed: Option<u32>,
     radius_override: Option<f32>,
+    point_distribution: PointDistribution,
 }
 
 impl PlanetConfigBuilder {
@@ -230,6 +257,7 @@ impl PlanetConfigBuilder {
             lloyd_convergence: 0.01,
             terrain_seed: None,
             radius_override: None,
+            point_distribution: PointDistribution::default(),
         }
     }
 
@@ -322,6 +350,17 @@ impl PlanetConfigBuilder {
         Ok(self)
     }
 
+    /// Set the point distribution method
+    ///
+    /// - `Random`: Traditional random placement, requires Lloyd relaxation for uniformity
+    /// - `Fibonacci`: Golden spiral distribution, near-uniform without relaxation
+    ///
+    /// For best performance, use `Fibonacci` with `lloyd_iterations(0)`.
+    pub fn point_distribution(mut self, method: PointDistribution) -> Self {
+        self.point_distribution = method;
+        self
+    }
+
     /// Build the configuration
     ///
     /// If no seed was provided, generates a random seed using thread_rng.
@@ -336,6 +375,7 @@ impl PlanetConfigBuilder {
             lloyd_convergence: self.lloyd_convergence,
             terrain_seed,
             radius_override: self.radius_override,
+            point_distribution: self.point_distribution,
         })
     }
 }

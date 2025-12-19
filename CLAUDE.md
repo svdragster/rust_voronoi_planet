@@ -43,8 +43,11 @@ This library generates Voronoi-tessellated sphere meshes for procedural planet g
 
 The Voronoi generation follows this pipeline:
 
-1. **Point Generation** (`points.rs`): Random points uniformly distributed on sphere using ChaCha8Rng for determinism
-2. **Lloyd's Relaxation** (`lloyd.rs`): Iterative refinement moving points to cell centroids for uniform distribution. Features convergence detection (stops early when points stabilize).
+1. **Point Generation**: Configurable via `PointDistribution` enum:
+   - `Random` (`points.rs`): Uniform random distribution using ChaCha8Rng for determinism
+   - `Fibonacci` (`fibonacci.rs`): Golden spiral lattice, near-uniform in O(n) time (recommended)
+2. **Lloyd's Relaxation** (`lloyd.rs`): Optional iterative refinement. Features convergence detection.
+   - Not needed with Fibonacci distribution (use `lloyd_iterations: 0` for best performance)
 3. **Delaunay Triangulation** (`delaunay.rs`): Uses parry3d convex hull (convex hull of sphere points = Delaunay triangulation)
 4. **Voronoi Construction** (`voronoi.rs`): Computes circumcenters, orders vertices CCW, finds neighbors
 
@@ -88,3 +91,23 @@ When `spatial-index` feature is enabled:
 | Small  | 11,000 | 16.7   |
 | Medium | 17,000 | 20.9   |
 | Large  | 26,000 | 25.8   |
+
+## Performance
+
+The main bottleneck is convex hull computation (~170ms per call for 5000 cells).
+
+| Configuration | Convex Hull Calls | Approx. Time | Cell Quality |
+|--------------|------------------|--------------|--------------|
+| Random + 5 Lloyd | 6× | ~1000ms | Excellent |
+| Fibonacci + 1 Lloyd | 2× | ~340ms | Excellent |
+| Fibonacci + 0 Lloyd | 1× | ~170ms | Good |
+
+**Recommended (best balance of speed and quality):**
+```rust
+PlanetConfigBuilder::new()
+    .point_distribution(PointDistribution::Fibonacci)
+    .lloyd_iterations(1)?
+    .build()?
+```
+
+Note: Fibonacci distribution includes automatic jitter to break up the regular spiral pattern and produce natural-looking Voronoi cells.

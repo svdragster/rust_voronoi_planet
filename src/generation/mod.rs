@@ -3,16 +3,18 @@
 //! Generates Voronoi cells on a sphere surface using Lloyd's relaxation
 //! and Delaunay triangulation via convex hull.
 
-mod points;
 mod delaunay;
+mod fibonacci;
 mod lloyd;
+mod points;
 mod voronoi;
 
-pub use points::generate_sphere_points;
+pub use fibonacci::generate_fibonacci_sphere_points;
 pub use lloyd::{lloyd_relaxation, lloyd_relaxation_with_options, LloydOptions};
+pub use points::generate_sphere_points;
 pub use voronoi::{generate_cells, RawCell};
 
-use crate::config::PlanetConfig;
+use crate::config::{PlanetConfig, PointDistribution};
 use crate::error::Result;
 
 /// Generate raw Voronoi cells from configuration (without terrain)
@@ -23,10 +25,15 @@ pub fn generate_raw_cells(config: &PlanetConfig) -> Result<Vec<RawCell>> {
     let radius = config.radius();
     let cell_count = config.cell_count();
 
-    // Step 1: Generate random points on sphere
-    let points = points::generate_sphere_points(cell_count, radius, config.seed);
+    // Step 1: Generate points on sphere using configured distribution method
+    let points = match config.point_distribution {
+        PointDistribution::Random => points::generate_sphere_points(cell_count, radius, config.seed),
+        PointDistribution::Fibonacci => {
+            fibonacci::generate_fibonacci_sphere_points(cell_count, radius, config.seed)
+        }
+    };
 
-    // Step 2: Apply Lloyd's relaxation with convergence detection
+    // Step 2: Apply Lloyd's relaxation with convergence detection (if enabled)
     let points = if config.lloyd_iterations > 0 {
         let options = LloydOptions {
             max_iterations: config.lloyd_iterations,

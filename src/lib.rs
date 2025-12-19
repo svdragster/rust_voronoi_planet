@@ -41,7 +41,7 @@ pub mod spatial;
 
 // Re-export core types for convenience
 pub use error::{VoronoiError, Result};
-pub use config::{PlanetConfig, PlanetConfigBuilder, PlanetSize};
+pub use config::{PlanetConfig, PlanetConfigBuilder, PlanetSize, PointDistribution};
 pub use cell::VoronoiCell;
 pub use planet::VoronoiPlanet;
 pub use terrain::{BasicTerrainType, TerrainSampler, PerlinTerrainSampler, PerlinConfig};
