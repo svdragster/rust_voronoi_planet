@@ -2,6 +2,8 @@
 
 Voronoi-based planet mesh generation for games and simulations.
 
+![bevy_voronoi_planets](https://github.com/user-attachments/assets/0802d7d0-f635-48e7-a3a8-13de1b715ac5)
+
 ## Features
 
 - Generates Voronoi-tessellated sphere meshes for procedural planets
@@ -44,6 +46,10 @@ rust_voronoi_planet = "0.1"
 
 ## Example
 
+### Godot Example
+Please see [https://github.com/svdragster/godot_rust_voronoi_planet|https://github.com/svdragster/godot_rust_voronoi_planet]
+
+### Bevy Example
 See `examples/bevy_visualization/` for a full Bevy demo with 3 planets (Earth, Mars, Alien) showcasing custom terrain types and color mappers.
 
 ```bash
