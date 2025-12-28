@@ -47,7 +47,7 @@ rust_voronoi_planet = "0.1"
 ## Example
 
 ### Godot Example
-Please see [https://github.com/svdragster/godot_rust_voronoi_planet|https://github.com/svdragster/godot_rust_voronoi_planet]
+Please see ![https://github.com/svdragster/godot_rust_voronoi_planet](https://github.com/svdragster/godot_rust_voronoi_planet)
 
 ### Bevy Example
 See `examples/bevy_visualization/` for a full Bevy demo with 3 planets (Earth, Mars, Alien) showcasing custom terrain types and color mappers.
